@@ -22,6 +22,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"encoding/json"
 
 	"github.com/open-ch/ja3"
 	"golang.org/x/net/http2"
@@ -186,6 +187,7 @@ func SSLBump(conn net.Conn, serverAddr, user, authUser string, r *http.Request) 
 
 	tally := conf.URLRules.MatchingRules(cr.URL)
 	scores := conf.categoryScores(tally)
+
 	reqACLs := conf.ACLs.requestACLs(cr, authUser)
 	if invalidSSL {
 		reqACLs["invalid-ssl"] = true
@@ -200,7 +202,48 @@ func SSLBump(conn net.Conn, serverAddr, user, authUser string, r *http.Request) 
 	}
 
 	rule, ignored := conf.ChooseACLCategoryAction(reqACLs, scores, conf.Threshold, possibleActions...)
+
+	for _, externalACL := range conf.ExternalConnectACL {
+			v := make(url.Values)
+			v.Set("url", cr.URL.String())
+			v.Set("method", cr.Method)
+			v.Set("action", rule.Action)
+
+			localCr, err := clientWithExtraRootCerts.PostForm(externalACL, v)
+			if err != nil {
+				log.Printf("Error checking external-connect-acl (%s): %v", externalACL, err)
+				continue
+			}
+			if localCr.StatusCode != 200 {
+				log.Printf("Bad HTTP status checking external-connect-acl (%s): %s", externalACL, localCr.Status)
+				continue
+			}
+			jd := json.NewDecoder(localCr.Body)
+			externalAclsAction := make(map[string]int)
+			err = jd.Decode(&externalAclsAction)
+			localCr.Body.Close()
+			if err != nil {
+				log.Printf("Error decoding response from external-connect-acl (%s): %v", externalACL, err)
+				continue
+			}
+			for k := range externalAclsAction {
+				if k == "ssl-bump" || k == "tlsbump" {
+					if conf.TLSReady && !obsoleteVersion && !invalidSSL {
+						rule.Action = "ssl-bump"
+					}
+				}
+				if k == "allow" || k == "bumpbypass"{
+					rule.Action = "allow"
+				}
+				if k == "block" {
+					rule.Action = k
+				}
+			}
+	}
+
+
 	logAccess(cr, nil, 0, false, user, tally, scores, rule, "", ignored)
+
 
 	switch rule.Action {
 	case "allow", "":

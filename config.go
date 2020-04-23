@@ -85,6 +85,7 @@ type config struct {
 	TLSCert          tls.Certificate
 	ParsedTLSCert    *x509.Certificate
 	TLSReady         bool
+	BumpBlockedTLS	 bool
 	ExtraRootCerts   *x509.CertPool
 	BlockObsoleteSSL bool
 	CertCache        CertificateCache
@@ -107,6 +108,10 @@ type config struct {
 	HTTP2Upstream             bool
 	HTTP2Downstream           bool
 	DisableKeepAlivesUpstream bool
+
+	ExternalClassifiers []string
+	ExternalConnectACL []string
+
 
 	GZIPLevel   int
 	BrotliLevel int
@@ -185,6 +190,10 @@ func loadConfiguration() (*config, error) {
 
 	c.stringListFlag("classifier-ignore", "category to omit from classifier results", &c.ClassifierIgnoredCategories)
 	c.stringListFlag("public-suffix", "domain to treat as a public suffix", &c.PublicSuffixes)
+	c.stringListFlag("external-classifier", "HTTP API endpoint to check URLs against", &c.ExternalClassifiers)
+	c.stringListFlag("external-connect-acl", "HTTP API endpoint to check CONNECT Request against", &c.ExternalConnectACL)
+	c.flags.BoolVar(&c.BumpBlockedTLS, "bump-blocked", true, "Bump TLS connections on block action.")
+
 
 	c.newActiveFlag("virtual-host", "", "a hostname substitution to apply to HTTP requests (e.g. -virtual-host me.local localhost)", func(val string) error {
 		f := strings.Fields(val)
