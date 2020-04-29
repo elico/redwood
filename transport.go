@@ -91,7 +91,9 @@ func dialWithExtraRootCerts(network, addr string) (net.Conn, error) {
 var transportWithExtraRootCerts = &http.Transport{
 	DialTLS:               dialWithExtraRootCerts,
 	TLSHandshakeTimeout:   10 * time.Second,
-	ExpectContinueTimeout: 1 * time.Second,
+	ExpectContinueTimeout: 10 * time.Second,
+	MaxIdleConn: 100,
+	MaxIdleConnPerHost: 100,
 }
 
 var clientWithExtraRootCerts = &http.Client{
