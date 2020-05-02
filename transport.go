@@ -92,8 +92,8 @@ var transportWithExtraRootCerts = &http.Transport{
 	DialTLS:               dialWithExtraRootCerts,
 	TLSHandshakeTimeout:   10 * time.Second,
 	ExpectContinueTimeout: 10 * time.Second,
-	MaxIdleConns: 100,
-	MaxIdleConnsPerHost: 100,
+	MaxIdleConn: 100,
+	MaxIdleConnPerHost: 100,
 }
 
 var clientWithExtraRootCerts = &http.Client{
