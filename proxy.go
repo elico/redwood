@@ -204,6 +204,7 @@ func (h proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		v := make(url.Values)
 		v.Set("url", r.URL.String())
 		v.Set("method", r.Method)
+		v.Set("src", r.RemoteAddr)
 
 		cr, err := clientWithExtraRootCerts.PostForm(classifier, v)
 		if err != nil {

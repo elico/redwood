@@ -208,6 +208,8 @@ func SSLBump(conn net.Conn, serverAddr, user, authUser string, r *http.Request) 
 			v.Set("url", cr.URL.String())
 			v.Set("method", cr.Method)
 			v.Set("action", rule.Action)
+			v.Set("src", cr.RemoteAddr)
+
 
 			localCr, err := clientWithExtraRootCerts.PostForm(externalACL, v)
 			if err != nil {
